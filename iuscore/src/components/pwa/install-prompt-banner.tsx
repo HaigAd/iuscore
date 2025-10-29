@@ -43,9 +43,7 @@ export function InstallPromptBanner({ className }: { className?: string }) {
             Install IUScore
           </p>
           <p className="max-w-2xl text-slate-200/90">
-            Add IUScore to your dock or home screen for a full-screen, offline-friendly workflow.
-            Install once to enable caching of segment presets, clipboard helpers, and most recent
-            disease context.
+            Add IUScore to your dock or home screen for a full-screen, offline-friendly reporting experience.
           </p>
           {needsIosHint && (
             <p className="rounded-xl bg-white/5 px-3 py-2 text-xs text-slate-100/80">

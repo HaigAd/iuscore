@@ -1,14 +1,18 @@
 "use client"
 
 import { useEffect, useMemo, useRef } from "react"
-import { Droplet, RotateCcw } from "lucide-react"
+import { RotateCcw } from "lucide-react"
 
+import { SegmentDopplerControl } from "@/components/segments/segment-card/segment-doppler-control"
+import { SegmentFatControl } from "@/components/segments/segment-card/segment-fat-control"
+import { SegmentLymphNodesControl } from "@/components/segments/segment-card/segment-lymph-nodes-control"
+import { SegmentNotesSection } from "@/components/segments/segment-card/segment-notes-section"
+import { SegmentStratificationControl } from "@/components/segments/segment-card/segment-stratification-control"
+import { SegmentStrictureControl } from "@/components/segments/segment-card/segment-stricture-control"
+import { VisualizationQualityPanel } from "@/components/segments/visualization-quality-panel"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { VisualizationQualityPanel } from "@/components/segments/visualization-quality-panel"
 import type {
   DiseaseProfile,
   SegmentData,
@@ -22,22 +26,6 @@ import {
   getSegmentStatus,
 } from "@/lib/segments"
 import { cn } from "@/lib/utils"
-
-type StratificationValue = Exclude<SegmentData["stratification"], undefined>
-
-const stratificationOptions: Record<DiseaseProfile, { value: StratificationValue | "uncertain"; label: string }[]> = {
-  uc: [
-    { value: "normal", label: "Normal" },
-    { value: "focal", label: "Focal loss" },
-    { value: "extensive", label: "Extensive loss" },
-  ],
-  cd: [
-    { value: "normal", label: "Normal" },
-    { value: "focal", label: "Focal loss" },
-    { value: "extensive", label: "Extensive loss" },
-    { value: "uncertain", label: "Uncertain" },
-  ],
-}
 
 interface SegmentCardProps {
   segment: SegmentData
@@ -306,268 +294,21 @@ export function SegmentCard({ segment, profile, tabOrder, onChange, onRemove }: 
 
         {expanded && !segment.notVisualised && (
           <div className="space-y-4">
-            <section className="space-y-2">
-              <Label className="text-xs uppercase tracking-wide text-muted-foreground">
-                <span className="flex items-center gap-1">
-                  Doppler signal (Modified Limberg Score)
-                </span>
-              </Label>
-              <div className="flex flex-wrap gap-2">
-                {[0, 1, 2, 3].map((grade) => (
-                  <Button
-                    key={grade}
-                    type="button"
-                    size="sm"
-                    variant={segment.dopplerGrade === grade ? "default" : "outline"}
-                    className={cn(
-                      "gap-2 rounded-full px-4",
-                      segment.dopplerGrade === grade && "bg-primary text-primary-foreground",
-                    )}
-                    disabled={segment.dopplerUncertain || segment.notVisualised}
-                    onClick={() =>
-                      onChange({
-                        dopplerGrade:
-                          segment.dopplerGrade === grade
-                            ? undefined
-                            : (grade as SegmentData["dopplerGrade"]),
-                        dopplerUncertain: undefined,
-                      })
-                    }
-                  >
-                    <Droplet className="h-3.5 w-3.5" />
-                    {grade}
-                  </Button>
-                ))}
-              </div>
-            </section>
+            <SegmentDopplerControl segment={segment} onChange={onChange} />
 
             <section className="grid gap-3 md:grid-cols-3">
-              <div className="space-y-2 rounded-2xl border border-border/60 bg-background/70 p-3">
-                <Label className="text-xs uppercase tracking-wide text-muted-foreground">
-                  Bowel wall stratification
-                </Label>
-                <div className="flex flex-wrap gap-2">
-                  {stratificationOptions[profile].map((option) => {
-                    const isUncertain = option.value === "uncertain"
-                    const isActive = isUncertain
-                      ? segment.stratificationUncertain === true && !segment.stratification
-                      : segment.stratification === option.value && !segment.stratificationUncertain
-                    return (
-                      <Button
-                        key={option.value}
-                        type="button"
-                        size="sm"
-                        variant={isActive ? "default" : "outline"}
-                        className="flex-1 rounded-full"
-                        onClick={() =>
-                          onChange(
-                            isUncertain
-                              ? { stratification: undefined, stratificationUncertain: true }
-                              : {
-                                  stratification: option.value as StratificationValue,
-                                  stratificationUncertain: undefined,
-                                },
-                          )
-                        }
-                      >
-                        {option.label}
-                      </Button>
-                    )
-                  })}
-                </div>
-              </div>
-              <div className="space-y-3 rounded-2xl border border-border/60 bg-background/70 p-3">
-                <Label className="text-xs uppercase tracking-wide text-muted-foreground">
-                  Mesenteric fat
-                </Label>
-                <div className="flex flex-wrap gap-2">
-                  {(
-                    profile === "uc"
-                      ? [
-                          { key: "none", label: "Normal" },
-                          { key: "active", label: "Echogenic" },
-                        ]
-                      : [
-                          { key: "none", label: "Normal" },
-                          { key: "active", label: "Echogenic" },
-                          { key: "uncertain", label: "Uncertain" },
-                        ]
-                  ).map((option) => {
-                    const currentState = segment.fatWrapping
-                      ? "active"
-                      : segment.fatWrappingUncertain
-                        ? "uncertain"
-                        : segment.fatWrapping === false
-                          ? "none"
-                          : undefined
-                    const isActive = option.key === currentState
-                    return (
-                      <Button
-                        key={option.key}
-                        type="button"
-                        size="sm"
-                        variant={isActive ? "default" : "outline"}
-                        className="rounded-full"
-                        onClick={() => {
-                          if (option.key === "active") {
-                            onChange({ fatWrapping: true, fatWrappingUncertain: undefined })
-                          } else if (option.key === "none") {
-                            onChange({ fatWrapping: false, fatWrappingUncertain: undefined })
-                          } else {
-                            onChange({ fatWrapping: undefined, fatWrappingUncertain: true })
-                          }
-                        }}
-                      >
-                        {option.label}
-                      </Button>
-                    )
-                  })}
-                </div>
-              </div>
-              <div className="space-y-3 rounded-2xl border border-border/60 bg-background/70 p-3">
-                <Label className="text-xs uppercase tracking-wide text-muted-foreground">
-                  Mesenteric lymph nodes
-                </Label>
-                <div className="flex flex-wrap gap-2">
-                  {[
-                    { value: false, label: "Absent" },
-                    { value: true, label: "Present" },
-                  ].map((option) => {
-                    const isActive = segment.lymphNodes === option.value
-                    return (
-                      <Button
-                        key={option.label}
-                        type="button"
-                        size="sm"
-                        variant={isActive ? "default" : "outline"}
-                        className="flex-1 rounded-full"
-                        disabled={segment.notVisualised}
-                        onClick={() =>
-                          onChange({
-                            lymphNodes: isActive ? undefined : option.value,
-                          })
-                        }
-                      >
-                        {option.label}
-                      </Button>
-                    )
-                  })}
-                </div>
-              </div>
-            </section>
-
-            {segment.isSmallBowel && profile === "cd" && (
-              <div className="space-y-3 rounded-2xl border border-border/60 bg-background/70 p-3">
-                <Label className="text-xs uppercase tracking-wide text-muted-foreground">
-                  Stricture assessment
-                </Label>
-                <div className="space-y-3 rounded-xl border border-dashed border-border/70 p-3">
-                  <div className="space-y-2">
-                    <p className="text-sm font-medium text-muted-foreground">Luminal narrowing</p>
-                    <div className="flex flex-wrap gap-2">
-                      {[
-                        { value: false, label: "Absent" },
-                        { value: true, label: "Present" },
-                      ].map((option) => {
-                        const current = !!segment.luminalNarrowing
-                        const isActive = option.value ? current : !current
-                        return (
-                          <Button
-                            key={option.label}
-                            type="button"
-                            size="sm"
-                            variant={isActive ? "default" : "outline"}
-                            className="flex-1 rounded-full"
-                            onClick={() => {
-                              if (option.value) {
-                                onChange({ luminalNarrowing: true })
-                              } else {
-                                onChange({
-                                  luminalNarrowing: undefined,
-                                  prestenoticDilatation: undefined,
-                                  prestenoticDiameterMm: undefined,
-                                })
-                              }
-                            }}
-                          >
-                            {option.label}
-                          </Button>
-                        )
-                      })}
-                    </div>
-                  </div>
-                  {segment.luminalNarrowing && (
-                    <div className="space-y-2 rounded-lg border border-border/70 p-3">
-                      <p className="text-sm font-medium text-muted-foreground">
-                        Prestenotic dilatation
-                      </p>
-                      <div className="flex flex-wrap gap-2">
-                        {[
-                          { value: false, label: "Absent" },
-                          { value: true, label: "Present" },
-                        ].map((option) => {
-                          const current = !!segment.prestenoticDilatation
-                          const isActive = option.value ? current : !current
-                          return (
-                            <Button
-                              key={option.label}
-                              type="button"
-                              size="sm"
-                              variant={isActive ? "default" : "outline"}
-                              className="flex-1 rounded-full"
-                              onClick={() => {
-                                if (option.value) {
-                                  onChange({ prestenoticDilatation: true })
-                                } else {
-                                  onChange({
-                                    prestenoticDilatation: undefined,
-                                    prestenoticDiameterMm: undefined,
-                                  })
-                                }
-                              }}
-                            >
-                              {option.label}
-                            </Button>
-                          )
-                        })}
-                      </div>
-                      {segment.prestenoticDilatation && (
-                        <Input
-                          type="number"
-                          inputMode="decimal"
-                          min={0}
-                          step=".1"
-                          placeholder="Diameter (mm)"
-                          value={segment.prestenoticDiameterMm ?? ""}
-                          onChange={(event) =>
-                            onChange({
-                              prestenoticDiameterMm:
-                                event.target.value === "" ? undefined : Number(event.target.value),
-                            })
-                          }
-                        />
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-
-            <section className="space-y-2">
-              <Label className="text-xs uppercase tracking-wide text-muted-foreground">
-                Notes (optional)
-              </Label>
-              <Textarea
-                placeholder="Luminal distension, targeted comments, etc."
-                value={segment.notes ?? ""}
-                onChange={(event) =>
-                  onChange({
-                    notes: event.target.value.trim().length ? event.target.value : undefined,
-                  })
-                }
-                className="min-h-[64px]"
+              <SegmentStratificationControl
+                profile={profile}
+                segment={segment}
+                onChange={onChange}
               />
+              <SegmentFatControl profile={profile} segment={segment} onChange={onChange} />
+              <SegmentLymphNodesControl segment={segment} onChange={onChange} />
             </section>
+
+            <SegmentStrictureControl profile={profile} segment={segment} onChange={onChange} />
+
+            <SegmentNotesSection segment={segment} onChange={onChange} />
           </div>
         )}
       </CardContent>
