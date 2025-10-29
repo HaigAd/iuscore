@@ -16,6 +16,8 @@ export type SegmentId =
   | "leftFlankSmallBowel"
   | "rightFlankSmallBowel"
 
+export const ABSENT_VISUALIZATION_REASON = "Absent"
+
 export type SegmentStatus = "uninvolved" | "mild" | "moderate" | "severe"
 export type IbusActivityState = "remission" | "inactive" | "active"
 export type VisualizationQuality = "good" | "impaired" | "notVisualized"
@@ -41,6 +43,7 @@ export interface SegmentTemplate {
   isSmallBowel?: boolean
   isDynamic?: boolean
   visualizationOverride?: "good" | "impaired"
+  visualizationImpairmentReason?: string
 }
 
 export interface SegmentData extends SegmentTemplate {
@@ -170,42 +173,55 @@ export function getSegmentStatus(
 export function segmentSummary(segment: SegmentData, profile: DiseaseProfile) {
   const pieces: string[] = []
   if (segment.notVisualised) {
+    const reason = segment.visualizationImpairmentReason?.trim()
+    if (reason && reason.toLowerCase() === ABSENT_VISUALIZATION_REASON.toLowerCase()) {
+      return `${segment.label}: absent`
+    }
     return `${segment.label}: not visualized`
   }
   const milanScore = profile === "uc" ? getMilanScore(segment) : undefined
   const ibusScore = profile === "cd" ? getIbusScore(segment) : undefined
 
+  const orderedFindings: string[] = []
+
   if (segment.bwtUncertain) {
-    pieces.push("BWT uncertain")
+    orderedFindings.push("BWT uncertain")
   } else if (segment.bowelWallThickness !== undefined) {
-    pieces.push(`BWT ${segment.bowelWallThickness.toFixed(1)}mm`)
+    orderedFindings.push(`BWT ${segment.bowelWallThickness.toFixed(1)}mm`)
   }
+
   if (segment.dopplerUncertain) {
-    pieces.push("m-Limberg uncertain")
+    orderedFindings.push("Modified Limberg uncertain")
   } else if (segment.dopplerGrade !== undefined) {
-    pieces.push(`Doppler grade ${segment.dopplerGrade}`)
+    orderedFindings.push(`Modified Limberg grade ${segment.dopplerGrade}`)
   }
+
   if (segment.stratificationUncertain) {
-    pieces.push("Stratification uncertain")
+    orderedFindings.push("Stratification uncertain")
   } else if (segment.stratification) {
     const stratText =
       segment.stratification === "normal"
-        ? "Layering preserved"
+        ? "Stratification preserved"
         : segment.stratification === "focal"
-          ? "Focal stratification loss"
-          : "Extensive stratification loss"
-    pieces.push(stratText)
+          ? "Stratification focal loss"
+          : "Stratification extensive loss"
+    orderedFindings.push(stratText)
   }
+
   if (segment.fatWrappingUncertain) {
-    pieces.push("Mesenteric fat uncertain")
+    orderedFindings.push("Inflammatory fat uncertain")
   } else if (segment.fatWrapping !== undefined) {
-    pieces.push(segment.fatWrapping ? "Mesenteric fat active" : "No pre-mesenteric fat signal")
-  }
-  if (segment.lymphNodes !== undefined) {
-    pieces.push(
-      segment.lymphNodes ? "Mesenteric lymph nodes present" : "Mesenteric lymph nodes absent",
+    orderedFindings.push(
+      segment.fatWrapping ? "Inflammatory fat present" : "Inflammatory fat absent",
     )
   }
+
+  if (segment.lymphNodes) {
+    orderedFindings.push("Mesenteric lymph nodes present")
+  }
+
+  pieces.push(...orderedFindings)
+
   if (segment.notes) {
     pieces.push(segment.notes)
   }
@@ -223,16 +239,12 @@ export function segmentSummary(segment: SegmentData, profile: DiseaseProfile) {
     }
   }
 
-  const status = getSegmentStatus(segment, profile)
   if (profile === "uc") {
-    if (status !== "uninvolved") {
-      pieces.unshift(`Milan ${status}`)
-    }
     if (milanScore !== undefined) {
-      pieces.unshift(`Milan score ${milanScore.toFixed(1)}`)
+      pieces.push(`Milan score ${milanScore.toFixed(1)}`)
     }
   } else if (profile === "cd" && ibusScore !== undefined) {
-    pieces.unshift(`IBUS-SAS score ${ibusScore.toFixed(1)}`)
+    pieces.push(`IBUS-SAS score ${ibusScore.toFixed(1)}`)
   }
 
   if (!pieces.length) {
@@ -262,8 +274,8 @@ export function segmentHasData(segment: SegmentData) {
 }
 
 /**
- * Simplified Milan ultrasound criteria: weighted BWT + Doppler + stratification.
- * These weights follow the published regression-derived coefficients.
+ * Milan ultrasound criteria (2024 update):
+ * 1.4 × bowel wall thickness (mm) + 2 × Doppler presence (Limberg ≥ 1).
  */
 export function getMilanScore(segment: SegmentData) {
   if (segment.notVisualised) {
@@ -273,15 +285,14 @@ export function getMilanScore(segment: SegmentData) {
     return undefined
   }
 
-  const bwt = segment.bowelWallThickness
-  const doppler =
-    segment.dopplerUncertain || segment.dopplerGrade === undefined
-      ? undefined
-      : segment.dopplerGrade
-  const stratDisrupted =
-    segment.stratification === "focal" || segment.stratification === "extensive"
+  if (segment.dopplerUncertain || segment.dopplerGrade === undefined) {
+    return undefined
+  }
 
-  const score = 1.5 * bwt + 3.5 * (doppler ?? 0) + (stratDisrupted ? 6 : 0)
+  const bwt = segment.bowelWallThickness
+  const dopplerPresent = segment.dopplerGrade >= 1 ? 1 : 0
+
+  const score = 1.4 * bwt + 2 * dopplerPresent
   return Number(score.toFixed(1))
 }
 

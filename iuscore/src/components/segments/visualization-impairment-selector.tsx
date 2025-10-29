@@ -11,41 +11,41 @@ import { ChevronDown, SquareSplitHorizontal, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
+import { ABSENT_VISUALIZATION_REASON } from "@/lib/segments"
 
-export const INDICATION_OPTIONS = [
-  "Disease activity assessment",
-  "Symptoms - exclude active inflammation",
-  "Assess response to therapy",
-  "New patient - baseline investigation",
-  "Exclude active inflammatory bowel disease",
+const VISUALIZATION_IMPAIRMENT_OPTIONS = [
+  "Body habitus",
+  ABSENT_VISUALIZATION_REASON,
+  "Patient discomfort",
+  "Deep pelvic loop",
 ] as const
 
-const STORAGE_KEY = "iuscore:indications"
+const STORAGE_KEY = "iuscore:visualization-impairment-reasons"
 
-interface IndicationSelectorProps {
+interface VisualizationImpairmentSelectorProps {
   value: string
   onChange: (value: string) => void
   className?: string
 }
 
-export function IndicationSelector({
+export function VisualizationImpairmentSelector({
   value,
   onChange,
   className,
-}: IndicationSelectorProps) {
+}: VisualizationImpairmentSelectorProps) {
   const [history, setHistory] = useState<string[]>([])
   const [historyLoaded, setHistoryLoaded] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const fieldRef = useRef<HTMLDivElement | null>(null)
-  const menuContainerRef = useRef<HTMLDivElement | null>(null)
   const containerRef = useRef<HTMLDivElement | null>(null)
+  const menuContainerRef = useRef<HTMLDivElement | null>(null)
   const [menuPosition, setMenuPosition] = useState<{ left: number; top: number; width: number }>()
   const initializedRef = useRef(false)
 
   useEffect(() => {
     if (initializedRef.current) return
     initializedRef.current = true
-    if (value === INDICATION_OPTIONS[0]) {
+    if (value === VISUALIZATION_IMPAIRMENT_OPTIONS[0]) {
       onChange("")
     }
   }, [value, onChange])
@@ -87,18 +87,20 @@ export function IndicationSelector({
     }
   }, [])
 
+  const allOptions = useMemo(
+    () =>
+      [...VISUALIZATION_IMPAIRMENT_OPTIONS, ...history].filter(Boolean),
+    [history],
+  )
+
   const inlineMatch = useMemo(() => {
     const query = value.trim().toLowerCase()
     if (!query) return ""
-    const allOptions = [
-      ...INDICATION_OPTIONS,
-      ...history,
-    ].filter(Boolean)
     const match = allOptions.find((option) =>
       option.toLowerCase().startsWith(query),
     )
     return match ?? ""
-  }, [value, history])
+  }, [value, allOptions])
 
   const completionText = useMemo(() => {
     if (!inlineMatch) return ""
@@ -111,24 +113,21 @@ export function IndicationSelector({
     return inlineMatch.slice(normalizedInput.length)
   }, [inlineMatch, value])
 
-  const addToHistory = useCallback(
-    (entry: string) => {
-      const trimmed = entry.trim()
-      if (!trimmed) return
-      const lower = trimmed.toLowerCase()
-      const inDefaults = INDICATION_OPTIONS.some(
-        (option) => option.toLowerCase() === lower,
-      )
-      if (inDefaults) return
-      setHistory((prev) => {
-        if (prev.some((item) => item.toLowerCase() === lower)) {
-          return prev
-        }
-        return [trimmed, ...prev].slice(0, 10)
-      })
-    },
-    [setHistory],
-  )
+  const addToHistory = useCallback((entry: string) => {
+    const trimmed = entry.trim()
+    if (!trimmed) return
+    const lower = trimmed.toLowerCase()
+    const inDefaults = VISUALIZATION_IMPAIRMENT_OPTIONS.some(
+      (option) => option.toLowerCase() === lower,
+    )
+    if (inDefaults) return
+    setHistory((prev) => {
+      if (prev.some((item) => item.toLowerCase() === lower)) {
+        return prev
+      }
+      return [trimmed, ...prev].slice(0, 10)
+    })
+  }, [])
 
   const removeFromHistory = useCallback((entry: string) => {
     setHistory((prev) => prev.filter((item) => item !== entry))
@@ -169,9 +168,7 @@ export function IndicationSelector({
   }, [menuOpen, updateMenuPosition])
 
   useEffect(() => {
-    if (!menuOpen) {
-      return
-    }
+    if (!menuOpen) return
     updateMenuPosition()
     const handle = () => updateMenuPosition()
     window.addEventListener("resize", handle)
@@ -183,8 +180,10 @@ export function IndicationSelector({
   }, [menuOpen, updateMenuPosition])
 
   return (
-    <div className={cn("space-y-2", className)} ref={fieldRef}>
-      <p className="text-sm font-medium text-muted-foreground">Indication</p>
+    <div className={cn("space-y-1", className)} ref={fieldRef}>
+      <p className="text-[11px] font-medium text-muted-foreground text-right">
+        Impairment reason
+      </p>
       <div className="relative" ref={containerRef}>
         <Input
           value={value}
@@ -205,12 +204,12 @@ export function IndicationSelector({
               commitValue(nextValue)
             }
           }}
-          placeholder="Start typing or pick a saved indication"
-          className="w-full pr-24"
+          placeholder="Start typing or pick a reason"
+          className="h-8 w-full max-w-[320px] pr-24 text-sm"
         />
         {completionText && (
           <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center px-3 text-sm text-muted-foreground/50">
-            <span className="opacity-0 whitespace-pre">{value}</span>
+            <span className="whitespace-pre opacity-0">{value}</span>
             <span>{completionText}</span>
           </div>
         )}
@@ -237,7 +236,7 @@ export function IndicationSelector({
               return next
             })
           }
-          aria-label="Toggle indication suggestions"
+          aria-label="Toggle impairment reason suggestions"
         >
           <ChevronDown
             className={cn(
@@ -259,7 +258,7 @@ export function IndicationSelector({
               }}
             >
               <ul>
-                {INDICATION_OPTIONS.map((option) => (
+                {VISUALIZATION_IMPAIRMENT_OPTIONS.map((option) => (
                   <li key={option}>
                     <button
                       type="button"
@@ -278,7 +277,7 @@ export function IndicationSelector({
                   <>
                     <li>
                       <div className="px-3 py-1 text-[11px] uppercase tracking-wide text-muted-foreground">
-                        Saved indications
+                        Saved reasons
                       </div>
                     </li>
                     {history.map((option) => (
@@ -297,7 +296,7 @@ export function IndicationSelector({
                           </button>
                           <button
                             type="button"
-                            className="ml-3 text-destructive"
+                            className="ml-3 text-destructive hover:text-destructive"
                             aria-label={`Remove ${option}`}
                             onMouseDown={(event) => event.preventDefault()}
                             onClick={(event) => {

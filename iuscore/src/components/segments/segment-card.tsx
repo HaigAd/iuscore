@@ -1,13 +1,14 @@
 "use client"
 
 import { useEffect, useMemo, useRef } from "react"
-import { Droplet, RotateCcw, Trash2 } from "lucide-react"
+import { Droplet, RotateCcw } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
+import { VisualizationQualityPanel } from "@/components/segments/visualization-quality-panel"
 import type {
   DiseaseProfile,
   SegmentData,
@@ -133,22 +134,6 @@ export function SegmentCard({ segment, profile, tabOrder, onChange, onRemove }: 
     segment.fatWrappingUncertain,
   ])
 
-  const handleVisualizationQualityChange = (
-    value: "good" | "impaired" | "notVisualized",
-  ) => {
-    if (value === "notVisualized") {
-      onChange({
-        notVisualised: segment.notVisualised ? undefined : true,
-      })
-      return
-    }
-
-    onChange({
-      notVisualised: undefined,
-      visualizationOverride: value,
-    })
-  }
-
   const handleBwtChange = (value?: number) => {
     if (segment.notVisualised) {
       onChange({ notVisualised: undefined })
@@ -170,6 +155,7 @@ export function SegmentCard({ segment, profile, tabOrder, onChange, onRemove }: 
         prestenoticDilatation: undefined,
         prestenoticDiameterMm: undefined,
         visualizationOverride: undefined,
+        visualizationImpairmentReason: undefined,
       })
     } else {
       onChange({ bowelWallThickness: value, bwtUncertain: undefined })
@@ -178,7 +164,11 @@ export function SegmentCard({ segment, profile, tabOrder, onChange, onRemove }: 
 
   const resetSegment = () => {
     handleBwtChange(undefined)
-    onChange({ notVisualised: undefined, visualizationOverride: undefined })
+    onChange({
+      notVisualised: undefined,
+      visualizationOverride: undefined,
+      visualizationImpairmentReason: undefined,
+    })
   }
 
   useEffect(() => {
@@ -248,68 +238,12 @@ export function SegmentCard({ segment, profile, tabOrder, onChange, onRemove }: 
           </div>
           <p className={cn("mt-1 text-xs font-medium", descriptorTone)}>{statusDescriptor}</p>
         </div>
-        <div className="flex flex-col items-end gap-2">
-          <div className="flex flex-col items-end gap-1 rounded-xl bg-white/80 px-3 py-1.5 text-[11px] font-medium text-muted-foreground shadow-sm backdrop-blur-sm">
-            <span className="text-[11px] font-medium text-muted-foreground/80">
-              Visualization quality
-            </span>
-            <div className="flex flex-wrap justify-end gap-1.5">
-              {(
-                [
-                  {
-                    value: "good" as const,
-                    label: "Good",
-                    activeClass: "bg-emerald-500 text-white shadow-sm ring-1 ring-emerald-500/50",
-                  },
-                  {
-                    value: "impaired" as const,
-                    label: "Impaired",
-                    activeClass: "bg-amber-400 text-amber-950 shadow-sm ring-1 ring-amber-400/50",
-                  },
-                  {
-                    value: "notVisualized" as const,
-                    label: "Not visualized",
-                    activeClass: "bg-rose-500 text-white shadow-sm ring-1 ring-rose-500/50",
-                  },
-                ] satisfies {
-                  value: "good" | "impaired" | "notVisualized"
-                  label: string
-                  activeClass: string
-                }[]
-              ).map((option) => {
-                const isActive = visualizationQuality === option.value
-                return (
-                  <button
-                    key={option.value}
-                    type="button"
-                    onClick={() => handleVisualizationQualityChange(option.value)}
-                    className={cn(
-                      "h-7 rounded-full px-3 text-[11px] font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-200 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-                      isActive
-                        ? option.activeClass
-                        : "border border-slate-200/80 bg-white/80 text-muted-foreground hover:border-slate-300 hover:bg-slate-100",
-                    )}
-                  >
-                    {option.label}
-                  </button>
-                )
-              })}
-            </div>
-          </div>
-          <div className="flex flex-wrap items-center justify-end gap-2 text-right">
-            {segment.isDynamic && onRemove && (
-              <Button
-                type="button"
-                size="icon"
-                variant="ghost"
-                className="h-8 w-8 text-destructive"
-                onClick={onRemove}
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            )}
-          </div>
-        </div>
+        <VisualizationQualityPanel
+          segment={segment}
+          visualizationQuality={visualizationQuality}
+          onChange={onChange}
+          onRemove={onRemove}
+        />
       </CardHeader>
       <CardContent
         className={cn(
