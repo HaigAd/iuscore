@@ -10,6 +10,10 @@ IUScore is a lightweight PWA that keeps intestinal ultrasound documentation focu
 - ⚡️ Shadcn component patterns, Radix primitives, Tailwind CSS, and Inter Variable typography.
 - 📱 Installable PWA via a custom service worker + manifest-ready icons.
 
+## Live site
+
+The production app is hosted at [https://iuscore.app](https://iuscore.app) with the latest main branch build. Use the hosted version for day-to-day scanning, and feel free to file issues if you spot drift between main and production.
+
 ## Getting started
 
 ```bash
