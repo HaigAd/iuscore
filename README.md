@@ -14,14 +14,17 @@ IUScore is a lightweight PWA that keeps intestinal ultrasound documentation focu
 
 The production app is hosted at [https://iuscore.app](https://iuscore.app) with the latest main branch build. Use the hosted version for day-to-day scanning, and feel free to file issues if you spot drift between main and production.
 
-## Getting started
+## Maintainer workflow
 
-```bash
-npm install
-npm run dev
-```
+The codebase is optimized for the internal IUScore deployment and is not intended as a turn-key starter kit. If you need to work on the app locally:
 
-The app runs at `http://localhost:5173`. Build the production bundle with `npm run build`.
+1. Install Node 20 LTS (we commit a `package-lock.json` to keep versions reproducible).
+2. `cd iuscore` & `npm install` to pull front-end dependencies.
+3. `npm run dev` to run the Vite dev server; use `npm run dev -- --host` when you need to exercise the PWA on external devices.
+
+Offline caching, install prompts, and clipboard flows only behave identically to production when the app is served from `https://iuscore.app`, so treat local runs as a visual sandbox rather than a substitute for clinical use.
+
+Generate the production bundle with `npm run build`. The output lands in `iuscore/dist/` and is uploaded through the IUScore deployment pipeline.
 
 ## Stack
 
