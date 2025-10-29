@@ -2,6 +2,7 @@ import { useCallback, useMemo, useState } from "react"
 import { CalendarDays, ClipboardCheck, RotateCcw } from "lucide-react"
 
 import { QuickScoreCalculator } from "@/components/calculators/quick-score-calculator"
+import { InstallPromptBanner } from "@/components/pwa/install-prompt-banner"
 import { SegmentCard } from "@/components/segments/segment-card"
 import { OverallVisualizationCard } from "@/components/segments/overall-visualization-card"
 import { DEFAULT_IMPAIRMENT_REASON } from "@/components/segments/visualization-quality-constants"
@@ -257,6 +258,7 @@ export default function App() {
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top,_var(--tw-gradient-stops))] from-slate-100 via-white to-white">
       <main className="mx-auto flex w-full max-w-6xl flex-col gap-10 px-4 py-10 lg:px-10">
+        <InstallPromptBanner />
         <div className="flex w-full flex-col items-center">
           <div className="w-full max-w-6xl rounded-full border border-border/70 bg-white/90 p-1 shadow-[0_12px_40px_rgba(15,23,42,0.06)] backdrop-blur">
             <div className="grid grid-cols-2 gap-1">
