@@ -3,9 +3,9 @@ const STATIC_ASSETS = [
   "/",
   "/index.html",
   "/manifest.webmanifest",
-  "/icons/icon-192.png",
-  "/icons/icon-512.png",
-  "/icons/icon-maskable.png",
+  "/app-icons/icon-192.png",
+  "/app-icons/icon-512.png",
+  "/app-icons/icon-maskable.png",
 ]
 
 self.addEventListener("install", (event) => {
