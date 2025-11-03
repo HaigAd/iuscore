@@ -1,4 +1,5 @@
 import type { VisualizationQuality } from "@/lib/segments"
+import { spell } from "@/lib/localization"
 
 export const DEFAULT_IMPAIRMENT_REASON = "Body habitus"
 
@@ -19,7 +20,7 @@ export const QUALITY_OPTIONS: {
   },
   {
     value: "notVisualized",
-    label: "Not visualized",
+    label: `Not ${spell("visualized")}`,
     activeClass: "bg-rose-500 text-white shadow-sm ring-1 ring-rose-500/50",
   },
 ]

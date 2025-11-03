@@ -1,3 +1,5 @@
+import { spell } from "@/lib/localization"
+
 export type DiseaseProfile = "uc" | "cd"
 
 export type SegmentId =
@@ -21,6 +23,7 @@ export const ABSENT_VISUALIZATION_REASON = "Absent"
 export type SegmentStatus = "uninvolved" | "mild" | "moderate" | "severe"
 export type IbusActivityState = "remission" | "inactive" | "active"
 export type VisualizationQuality = "good" | "impaired" | "notVisualized"
+export type RectalActivityState = "absent" | "possible" | "present"
 
 export interface SegmentTemplate {
   id: SegmentId
@@ -177,39 +180,42 @@ export function segmentSummary(segment: SegmentData, profile: DiseaseProfile) {
     if (reason && reason.toLowerCase() === ABSENT_VISUALIZATION_REASON.toLowerCase()) {
       return `${segment.label}: absent`
     }
-    return `${segment.label}: not visualized`
+    return `${segment.label}: not ${spell("visualized")}`
   }
   const milanScore = profile === "uc" ? getMilanScore(segment) : undefined
   const ibusScore = profile === "cd" ? getIbusScore(segment) : undefined
 
   const orderedFindings: string[] = []
 
-  if (segment.bwtUncertain) {
-    orderedFindings.push("BWT uncertain")
-  } else if (segment.bowelWallThickness !== undefined) {
+  if (segment.bowelWallThickness !== undefined) {
     orderedFindings.push(`BWT ${segment.bowelWallThickness.toFixed(1)}mm`)
   }
 
   if (segment.dopplerUncertain) {
-    orderedFindings.push("Modified Limberg uncertain")
+    orderedFindings.push("Uncertain bowel wall doppler flow")
   } else if (segment.dopplerGrade !== undefined) {
-    orderedFindings.push(`Modified Limberg grade ${segment.dopplerGrade}`)
+    if (segment.dopplerGrade == 0) {
+      orderedFindings.push(`No doppler flow`)
+    } else {
+      orderedFindings.push(`Bowel wall doppler flow present (Modified Limberg grade ${segment.dopplerGrade})`)
+    }
   }
+   
 
   if (segment.stratificationUncertain) {
-    orderedFindings.push("Stratification uncertain")
+    orderedFindings.push("Uncertain bowel wall stratification")
   } else if (segment.stratification) {
     const stratText =
       segment.stratification === "normal"
-        ? "Stratification preserved"
+        ? "Preserved bowel wall stratification"
         : segment.stratification === "focal"
-          ? "Stratification focal loss"
-          : "Stratification extensive loss"
+          ? "Focal loss of bowel wall stratification"
+          : "Extensive loss of bowel wall stratification"
     orderedFindings.push(stratText)
   }
 
   if (segment.fatWrappingUncertain) {
-    orderedFindings.push("Inflammatory fat uncertain")
+    orderedFindings.push("Uncertain appearance of inflammatory fat")
   } else if (segment.fatWrapping !== undefined) {
     orderedFindings.push(
       segment.fatWrapping ? "Inflammatory fat present" : "Inflammatory fat absent",
@@ -281,6 +287,9 @@ export function getMilanScore(segment: SegmentData) {
   if (segment.notVisualised) {
     return undefined
   }
+  if (segment.id === "rectum") {
+    return undefined
+  }
   if (segment.bwtUncertain || segment.bowelWallThickness === undefined) {
     return undefined
   }
@@ -294,6 +303,26 @@ export function getMilanScore(segment: SegmentData) {
 
   const score = 1.4 * bwt + 2 * dopplerPresent
   return Number(score.toFixed(1))
+}
+
+export function classifyRectalActivity(segment: SegmentData): RectalActivityState | undefined {
+  if (segment.id !== "rectum") {
+    return undefined
+  }
+  if (segment.notVisualised || segment.bwtUncertain) {
+    return undefined
+  }
+  if (segment.bowelWallThickness === undefined) {
+    return undefined
+  }
+
+  if (segment.bowelWallThickness < 4) {
+    return "absent"
+  }
+  if (segment.bowelWallThickness >= 6) {
+    return "present"
+  }
+  return "possible"
 }
 
 /**

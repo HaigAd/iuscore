@@ -17,7 +17,8 @@ const VISUALIZATION_IMPAIRMENT_OPTIONS = [
   "Body habitus",
   ABSENT_VISUALIZATION_REASON,
   "Patient discomfort",
-  "Deep pelvic loop",
+  "Trans-abdominal imaging",
+  "Deep pelvic loop"
 ] as const
 
 const STORAGE_KEY = "iuscore:visualization-impairment-reasons"

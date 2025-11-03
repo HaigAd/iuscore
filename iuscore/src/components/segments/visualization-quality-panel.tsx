@@ -4,6 +4,7 @@ import { Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import type { SegmentData, SegmentUpdate } from "@/lib/segments"
+import { spell } from "@/lib/localization"
 
 import { VisualizationImpairmentSelector } from "./visualization-impairment-selector"
 import { DEFAULT_IMPAIRMENT_REASON, QUALITY_OPTIONS } from "./visualization-quality-constants"
@@ -73,7 +74,7 @@ export function VisualizationQualityPanel({
     <div className={cn("flex flex-col items-end gap-1.5", className)}>
       <div className="flex flex-col items-end gap-1 text-[11px] font-medium text-muted-foreground">
         <span className="text-[11px] font-medium text-muted-foreground">
-          Visualization quality
+          {`${spell("visualization", { casing: "capitalize" })} quality`}
         </span>
         <div className="flex flex-wrap justify-end gap-1.5">
           {QUALITY_OPTIONS.map((option) => {

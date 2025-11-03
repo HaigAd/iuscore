@@ -18,6 +18,8 @@ export const INDICATION_OPTIONS = [
   "Assess response to therapy",
   "New patient - baseline investigation",
   "Exclude active inflammatory bowel disease",
+  "Post-operative Crohn's disease",
+  "Acute Severe Colitis"
 ] as const
 
 const STORAGE_KEY = "iuscore:indications"

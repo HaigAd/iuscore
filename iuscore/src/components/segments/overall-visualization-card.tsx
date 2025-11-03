@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import type { VisualizationQuality } from "@/lib/segments"
 import { cn } from "@/lib/utils"
+import { spell } from "@/lib/localization"
 
 import { VisualizationImpairmentSelector } from "./visualization-impairment-selector"
 import { QUALITY_OPTIONS } from "./visualization-quality-constants"
@@ -29,18 +30,18 @@ export function OverallVisualizationCard({
     >
       <CardHeader className="space-y-1.5 px-5 pb-2 pt-4">
         <CardTitle className="text-base font-semibold tracking-tight text-slate-900">
-          Overall visualization quality (optional)
+          {`Overall ${spell("visualization")} quality (optional)`}
         </CardTitle>
         <p className="text-xs text-muted-foreground">
           Apply a global imaging quality assessment to all segments.
         </p>
       </CardHeader>
-      <CardContent className="flex flex-col items-end gap-2 px-5 pb-5">
-        <div className="flex flex-col items-end gap-1 text-[11px] font-medium text-muted-foreground">
+      <CardContent className="flex flex-col items-start gap-2 px-5 pb-5">
+        <div className="flex flex-col items-start gap-1 text-[11px] font-medium text-muted-foreground">
           <span className="text-[11px] font-medium text-muted-foreground">
-            Visualization quality
+            {`${spell("visualization", { casing: "capitalize" })} quality`}
           </span>
-          <div className="flex flex-wrap justify-end gap-1.5">
+          <div className="flex flex-wrap justify-start gap-1.5">
             {QUALITY_OPTIONS.map((option) => {
               const isActive = quality === option.value
               return (

@@ -1,7 +1,9 @@
+import { spell } from "@/lib/localization"
 import type { DiseaseProfile, SegmentData, SegmentStatus } from "./segments"
 import {
   ABSENT_VISUALIZATION_REASON,
   classifyIbusActivity,
+  classifyRectalActivity,
   getSegmentStatus,
   getVisualizationQuality,
   segmentSummary,
@@ -126,17 +128,27 @@ interface BuildAutoImpressionArgs extends BuildReportInsightsArgs {
 
 function buildAutoImpression({
   profile,
-  ucHighestSeverity,
   segments,
   ibusClassifications,
 }: BuildAutoImpressionArgs) {
   const visualizationStatement = buildVisualizationStatement(segments)
   if (profile === "uc") {
-    if (ucHighestSeverity === "uninvolved") {
-      return composeImpression(
-        "No sonographic evidence of active bowel inflammation.",
-        visualizationStatement,
-      )
+    const rectalSegment = segments.find((segment) => segment.id === "rectum")
+    const rectalSentence = buildRectalActivitySentence(rectalSegment)
+    const nonRectalSegments = segments.filter((segment) => segment.id !== "rectum")
+
+    const colonHighestSeverity =
+      nonRectalSegments.length > 0
+        ? nonRectalSegments.reduce<SegmentStatus>((acc, segment) => {
+            const status = getSegmentStatus(segment, "uc")
+            return severityOrder.indexOf(status) > severityOrder.indexOf(acc) ? status : acc
+          }, "uninvolved")
+        : "uninvolved"
+
+    if (colonHighestSeverity === "uninvolved") {
+      const primary =
+        rectalSentence || "No sonographic evidence of active bowel inflammation."
+      return composeImpression(primary, visualizationStatement)
     }
 
     const descriptorMap: Record<Exclude<SegmentStatus, "uninvolved">, string> = {
@@ -145,16 +157,16 @@ function buildAutoImpression({
       severe: "severe inflammation",
     }
 
-    const focusSegments = segments
-      .filter((segment) => getSegmentStatus(segment, "uc") === ucHighestSeverity)
+    const focusSegments = nonRectalSegments
+      .filter((segment) => getSegmentStatus(segment, "uc") === colonHighestSeverity)
       .map((segment) => segment.label.toLowerCase())
 
     const focusText = formatList(focusSegments)
 
-    return composeImpression(
-      `There is ${descriptorMap[ucHighestSeverity]} involving ${focusText}.`,
-      visualizationStatement,
-    )
+    const colonSentence = `There is ${descriptorMap[colonHighestSeverity]} involving ${focusText}.`
+    const primary = [colonSentence, rectalSentence].filter(Boolean).join(" ")
+
+    return composeImpression(primary, visualizationStatement)
   }
 
   if (!ibusClassifications.length) {
@@ -252,8 +264,10 @@ function buildVisualizationStatement(segments: SegmentData[]) {
   const hasImpaired = qualityCounts.impaired > 0
   const hasNotVisualized = qualityCounts.notVisualized > 0
 
+  const visualizationWord = spell("visualization")
+  const capitalizedVisualization = spell("visualization", { casing: "capitalize" })
   if (!hasImpaired && !hasNotVisualized) {
-    return "Visualization was satisfactory."
+    return `${capitalizedVisualization} was satisfactory.`
   }
 
   const impairedLabels = segments
@@ -273,11 +287,11 @@ function buildVisualizationStatement(segments: SegmentData[]) {
 
   let base = ""
   if (impairedLabels.length && notVisualizedLabels.length) {
-    base = `The assessment was limited by impaired visualization of the ${formatList(impairedLabels)} and no visualization of ${formatList(notVisualizedLabels)}.`
+    base = `The assessment was limited by impaired ${visualizationWord} of the ${formatList(impairedLabels)} and no ${visualizationWord} of ${formatList(notVisualizedLabels)}.`
   } else if (impairedLabels.length) {
-    base = `The assessment was limited by impaired visualization of the ${formatList(impairedLabels)}.`
+    base = `The assessment was limited by impaired ${visualizationWord} of the ${formatList(impairedLabels)}.`
   } else if (notVisualizedLabels.length) {
-    base = `No visualization of ${formatList(notVisualizedLabels)}.`
+    base = `No ${visualizationWord} of ${formatList(notVisualizedLabels)}.`
   }
 
   if (qualityCounts.reasons.size) {
@@ -295,6 +309,38 @@ function composeImpression(primary: string, visualization: string) {
   return `${primary} ${visualization}`
 }
 
+function buildRectalActivitySentence(segment?: SegmentData) {
+  if (!segment) {
+    return ""
+  }
+  if (segment.notVisualised) {
+    return `Rectum not ${spell("visualized")}.`
+  }
+  if (segment.bwtUncertain) {
+    return "Rectal inflammation indeterminate (BWT uncertain)."
+  }
+
+  const bwt = segment.bowelWallThickness
+  if (typeof bwt !== "number") {
+    return ""
+  }
+
+  const activity = classifyRectalActivity(segment)
+  if (!activity) {
+    return ""
+  }
+
+  const bwtText = `BWT ${bwt.toFixed(1)} mm`
+
+  if (activity === "absent") {
+    return `Rectal inflammation absent (${bwtText}).`
+  }
+  if (activity === "present") {
+    return `Rectal inflammation present (${bwtText}).`
+  }
+  return `Rectal inflammation possible (${bwtText} - a BWT < 4mm in the rectum is associated with endoscopic remission and a BWT > 6mm is associated with active disease).`;
+}
+
 function deriveCrohnsStatusLabel(entries: IbusClassificationEntry[]) {
   if (!entries.length) return "inactive disease"
   const hasActive = entries.some((entry) => entry.classification?.state === "active")
@@ -310,6 +356,8 @@ function summarizeImagingQuality(segments: SegmentData[]) {
   const relevantSegments = segments.filter((segment) => !hasAbsentVisualizationReason(segment))
   const impairedSegments: SegmentData[] = []
   const notVisualizedSegments: SegmentData[] = []
+  const visualizationWord = spell("visualization")
+  const capitalizedVisualization = spell("visualization", { casing: "capitalize" })
 
   relevantSegments.forEach((segment) => {
     const quality = getVisualizationQuality(segment)
@@ -367,14 +415,19 @@ function summarizeImagingQuality(segments: SegmentData[]) {
 
   if (colonAllNotVisualized) {
     statements.push(
-      ensurePeriod(withReasonSuffix("No visualization of the entire colon", colonNotVisualizedSegments)),
+      ensurePeriod(
+        withReasonSuffix(
+          `No ${visualizationWord} of the entire colon`,
+          colonNotVisualizedSegments,
+        ),
+      ),
     )
     colonNotVisualizedSegments.forEach((segment) => handled.add(segment))
   } else if (colonAllImpaired) {
     statements.push(
       ensurePeriod(
         withReasonSuffix(
-          "Visualization of the entire colon was impaired",
+          `${capitalizedVisualization} of the entire colon was impaired`,
           colonImpairedSegments,
         ),
       ),
@@ -383,7 +436,10 @@ function summarizeImagingQuality(segments: SegmentData[]) {
   } else if (colonAllLimited) {
     statements.push(
       ensurePeriod(
-        withReasonSuffix("Visualization across the entire colon was limited", colonSegments),
+        withReasonSuffix(
+          `${capitalizedVisualization} across the entire colon was limited`,
+          colonSegments,
+        ),
       ),
     )
     colonSegments.forEach((segment) => handled.add(segment))
@@ -426,29 +482,29 @@ function summarizeImagingQuality(segments: SegmentData[]) {
     if (group.impaired.length) {
       const labels = group.impaired.sort(compareLabels).map(labelFor)
       statements.push(
-        ensurePeriod(`Impaired visualization of ${formatList(labels)} (${reason})`),
+        ensurePeriod(`Impaired ${visualizationWord} of ${formatList(labels)} (${reason})`),
       )
     }
     if (group.notVisualized.length) {
       const labels = group.notVisualized.sort(compareLabels).map(labelFor)
       statements.push(
-        ensurePeriod(`No visualization of ${formatList(labels)} (${reason})`),
+        ensurePeriod(`No ${visualizationWord} of ${formatList(labels)} (${reason})`),
       )
     }
   })
 
   if (impairedNoReason.length) {
     const labels = impairedNoReason.sort(compareLabels).map(labelFor)
-    statements.push(ensurePeriod(`Impaired visualization of ${formatList(labels)}`))
+    statements.push(ensurePeriod(`Impaired ${visualizationWord} of ${formatList(labels)}`))
   }
 
   if (notVisualizedNoReason.length) {
     const labels = notVisualizedNoReason.sort(compareLabels).map(labelFor)
-    statements.push(ensurePeriod(`No visualization of ${formatList(labels)}`))
+    statements.push(ensurePeriod(`No ${visualizationWord} of ${formatList(labels)}`))
   }
 
   const combined = statements.join(" ").trim()
-  return combined || "Visualization was limited."
+  return combined || `${capitalizedVisualization} was limited.`
 }
 
 function formatList(items: string[]) {

@@ -1,8 +1,9 @@
 "use client"
 
 import { useEffect, useMemo, useRef } from "react"
-import { RotateCcw } from "lucide-react"
+import { Info, RotateCcw } from "lucide-react"
 
+import { ContextPopover } from "@/components/context/context-popover"
 import { SegmentDopplerControl } from "@/components/segments/segment-card/segment-doppler-control"
 import { SegmentFatControl } from "@/components/segments/segment-card/segment-fat-control"
 import { SegmentLymphNodesControl } from "@/components/segments/segment-card/segment-lymph-nodes-control"
@@ -21,10 +22,13 @@ import type {
 } from "@/lib/segments"
 import {
   classifyIbusActivity,
+  classifyRectalActivity,
   getIbusScore,
   getMilanScore,
   getSegmentStatus,
 } from "@/lib/segments"
+import { buildSegmentIndicatorContext } from "@/lib/context/segment-indicator-context"
+import { spell } from "@/lib/localization"
 import { cn } from "@/lib/utils"
 
 interface SegmentCardProps {
@@ -48,12 +52,34 @@ export function SegmentCard({ segment, profile, tabOrder, onChange, onRemove }: 
   const ibusScore = profile === "cd" ? getIbusScore(segment) : undefined
   const ibusClassification = profile === "cd" ? classifyIbusActivity(segment) : undefined
   const lengthInputRef = useRef<HTMLInputElement | null>(null)
+  const rectalActivity =
+    profile === "uc" && segment.id === "rectum"
+      ? classifyRectalActivity(segment)
+      : undefined
   const statusDescriptor = useMemo(() => {
     if (segment.notVisualised) {
-      return "Segment not visualized"
+      return `Segment not ${spell("visualized")}`
     }
 
     if (profile === "uc") {
+      if (segment.id === "rectum") {
+        if (segment.bwtUncertain) {
+          return "Rectal BWT measurement uncertain."
+        }
+        const bwt = segment.bowelWallThickness
+        if (bwt === undefined) {
+          return "Enter BWT to assess rectal inflammation."
+        }
+        const interpretation =
+          rectalActivity === "absent"
+            ? "Inflammation absent."
+            : rectalActivity === "possible"
+              ? "Inflammation possible."
+              : rectalActivity === "present"
+                ? "Inflammation present."
+                : "Inflammation indeterminate."
+        return `Rectal BWT ${bwt.toFixed(1)} mm · ${interpretation}`
+      }
       if (milanScore !== undefined) {
         const severityText = status === "uninvolved" ? "likely remission" : "likely active inflammation"
         return `Milan score ${milanScore.toFixed(1)} · ${severityText}`
@@ -76,10 +102,37 @@ export function SegmentCard({ segment, profile, tabOrder, onChange, onRemove }: 
     }
 
     return status === "uninvolved" ? "Segment normal" : "Awaiting IBUS-SAS inputs"
-  }, [segment.notVisualised, profile, milanScore, status, ibusScore, ibusClassification])
+  }, [
+    segment.notVisualised,
+    profile,
+    milanScore,
+    status,
+    ibusScore,
+    ibusClassification,
+    segment.id,
+    segment.bowelWallThickness,
+    segment.bwtUncertain,
+    segment.dopplerGrade,
+    rectalActivity,
+  ])
 
   const descriptorTone = useMemo(() => {
     if (segment.notVisualised) {
+      return "text-slate-500"
+    }
+    if (profile === "uc" && segment.id === "rectum") {
+      if (segment.bwtUncertain || segment.bowelWallThickness === undefined) {
+        return "text-slate-500"
+      }
+      if (rectalActivity === "absent") {
+        return "text-emerald-600"
+      }
+      if (rectalActivity === "present") {
+        return "text-rose-700"
+      }
+      if (rectalActivity === "possible") {
+        return "text-amber-600"
+      }
       return "text-slate-500"
     }
     if (
@@ -95,7 +148,39 @@ export function SegmentCard({ segment, profile, tabOrder, onChange, onRemove }: 
       return "text-emerald-600"
     }
     return "text-rose-700"
-  }, [segment.notVisualised, statusDescriptor])
+  }, [
+    segment.notVisualised,
+    statusDescriptor,
+    profile,
+    segment.id,
+    segment.bowelWallThickness,
+    segment.bwtUncertain,
+    rectalActivity,
+  ])
+
+  const indicatorContext = useMemo(
+    () =>
+      buildSegmentIndicatorContext({
+        segment,
+        profile,
+        indicatorText: statusDescriptor,
+        status,
+        milanScore,
+        rectalActivity,
+        ibusScore,
+        ibusState: ibusClassification?.state,
+      }),
+    [
+      segment,
+      profile,
+      statusDescriptor,
+      status,
+      milanScore,
+      rectalActivity,
+      ibusScore,
+      ibusClassification?.state,
+    ],
+  )
 
   const visualizationQuality = useMemo(() => {
     if (segment.notVisualised) {
@@ -224,7 +309,22 @@ export function SegmentCard({ segment, profile, tabOrder, onChange, onRemove }: 
               </Button>
             )}
           </div>
-          <p className={cn("mt-1 text-xs font-medium", descriptorTone)}>{statusDescriptor}</p>
+          <ContextPopover
+            content={indicatorContext}
+            trigger={
+              <button
+                type="button"
+                className={cn(
+                  "mt-1 inline-flex items-center gap-1 text-left text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+                  descriptorTone,
+                )}
+              >
+                <span>{statusDescriptor}</span>
+                <Info aria-hidden className="h-3.5 w-3.5 text-muted-foreground" />
+                <span className="sr-only">View indicator context</span>
+              </button>
+            }
+          />
         </div>
         <VisualizationQualityPanel
           segment={segment}

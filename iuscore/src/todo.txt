@@ -1,0 +1,9 @@
+- Add evidence based tooltips
+- Is it worth a simple page to explain the scores and their sensspecificity etc?
+- There should definmitely be tool tips for 'how to' for fat and doppler signal with pictures of each
+- Add vizualization quality rather than just seen/not seen (maybe a traffic light system - green = good - default, yellow = impaired, red = not seen)
+ --> There should be some way to easily click why visualiation was impaired (?body habitus ?patient discomfort ?deep pelvic loop)
+
+ - Should there be an option to enter the machine and probes used as per the ECCO-ESGAR consensus?
+
+ - Should there be an option to remove a segment entirely (e.g. post surgical?)
