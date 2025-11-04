@@ -4,8 +4,10 @@ import {
   ABSENT_VISUALIZATION_REASON,
   classifyIbusActivity,
   classifyRectalActivity,
+  getMilanScore,
   getSegmentStatus,
   getVisualizationQuality,
+  MILAN_INFLAMMATION_THRESHOLD,
   segmentSummary,
 } from "./segments"
 
@@ -67,7 +69,9 @@ export function buildReportInsights({
 
   const highestStatusLabel =
     profile === "uc"
-      ? ucHighestSeverity
+      ? ucHighestSeverity === "uninvolved"
+        ? "inflammation unlikely"
+        : "inflammation likely"
       : deriveCrohnsStatusLabel(ibusClassifications)
 
   const autoImpression = buildAutoImpression({
@@ -151,19 +155,67 @@ function buildAutoImpression({
       return composeImpression(primary, visualizationStatement)
     }
 
-    const descriptorMap: Record<Exclude<SegmentStatus, "uninvolved">, string> = {
-      mild: "mild inflammation",
-      moderate: "moderate inflammation",
-      severe: "severe inflammation",
-    }
-
     const focusSegments = nonRectalSegments
       .filter((segment) => getSegmentStatus(segment, "uc") === colonHighestSeverity)
       .map((segment) => segment.label.toLowerCase())
 
     const focusText = formatList(focusSegments)
 
-    const colonSentence = `There is ${descriptorMap[colonHighestSeverity]} involving ${focusText}.`
+    const inflamedSegments = nonRectalSegments.filter(
+      (segment) => getSegmentStatus(segment, "uc") !== "uninvolved",
+    )
+
+    const inflamedScores = inflamedSegments
+      .map((segment) => ({
+        label: segment.label.toLowerCase(),
+        score: getMilanScore(segment),
+      }))
+      .filter(
+        (entry): entry is { label: string; score: number } =>
+          typeof entry.score === "number",
+      )
+
+    const highestScore =
+      inflamedScores.length > 0
+        ? inflamedScores.reduce(
+            (max, entry) => (entry.score > max ? entry.score : max),
+            inflamedScores[0].score,
+          )
+        : undefined
+
+    const highestScoreLabels =
+      highestScore === undefined
+        ? []
+        : inflamedScores
+            .filter((entry) => entry.score === highestScore)
+            .map((entry) => entry.label)
+
+    let colonSentence = ""
+
+    if (inflamedSegments.length > 1) {
+      if (focusText) {
+        colonSentence = `Milan score > ${MILAN_INFLAMMATION_THRESHOLD.toFixed(
+          1,
+        )} suggests inflammation involving the ${focusText}.`
+        if (highestScore !== undefined && highestScoreLabels.length) {
+          const worstLabel = highestScoreLabels[0]
+          colonSentence = `${colonSentence} Inflammation is most severe in the ${worstLabel} (MUC = ${highestScore.toFixed(
+            1,
+          )}).`
+        }
+      }
+    } else if (focusText) {
+      colonSentence = `Milan score > ${MILAN_INFLAMMATION_THRESHOLD.toFixed(
+        1,
+      )} suggests inflammation involving the ${focusText}`
+      if (highestScore !== undefined) {
+        colonSentence = `${colonSentence} (MUC = ${highestScore.toFixed(
+          1,
+        )}).`
+      } else {
+        colonSentence = `${colonSentence}.`
+      }
+    }
     const primary = [colonSentence, rectalSentence].filter(Boolean).join(" ")
 
     return composeImpression(primary, visualizationStatement)

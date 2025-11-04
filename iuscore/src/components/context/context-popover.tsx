@@ -15,6 +15,7 @@ export type ContextMedia = {
 export type ContextListItem = {
   text: string
   detail?: string
+  links?: ContextLink[]
 }
 
 export type ContextSection = {
@@ -22,12 +23,19 @@ export type ContextSection = {
   body?: string
   items?: ContextListItem[]
   media?: ContextMedia[]
+  links?: ContextLink[]
 }
 
 export type ContextContent = {
   title?: string
   summary?: string
   sections?: ContextSection[]
+}
+
+export type ContextLink = {
+  label: string
+  href: string
+  external?: boolean
 }
 
 interface ContextPopoverProps {
@@ -86,6 +94,29 @@ export function ContextContentView({
 
 function ContextSectionContent({ section }: { section: ContextSection }) {
   const { heading, body, items, media } = section
+  const renderLinks = (links?: ContextLink[], keyPrefix?: string) => {
+    if (!links?.length) {
+      return null
+    }
+    return (
+      <div className="flex flex-wrap gap-2 pt-1">
+        {links.map((link, index) => {
+          const isExternal = link.external ?? /^https?:\/\//.test(link.href)
+          return (
+            <a
+              key={`${keyPrefix ?? "link"}-${index}-${link.href}`}
+              href={link.href}
+              target={isExternal ? "_blank" : undefined}
+              rel={isExternal ? "noopener noreferrer" : undefined}
+              className="inline-flex items-center text-[11px] font-medium text-primary underline-offset-2 hover:underline"
+            >
+              {link.label}
+            </a>
+          )
+        })}
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-2 rounded-md border border-border/40 bg-muted/30 p-3">
@@ -96,11 +127,17 @@ function ContextSectionContent({ section }: { section: ContextSection }) {
           {items.map((item, index) => (
             <li key={index} className="text-xs text-muted-foreground">
               <span className="font-medium text-foreground">{item.text}</span>
-              {item.detail ? <span className="block text-[11px] text-muted-foreground/80">{item.detail}</span> : null}
+              {item.detail ? (
+                <span className="block whitespace-pre-line text-[11px] text-muted-foreground/80">
+                  {item.detail}
+                </span>
+              ) : null}
+              {renderLinks(item.links, `item-link-${index}`)}
             </li>
           ))}
         </ul>
       ) : null}
+      {renderLinks(section.links, "section-link")}
       {media?.length ? (
         <div className="grid gap-2">
           {media.map((entry, index) =>

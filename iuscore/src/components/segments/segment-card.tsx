@@ -56,6 +56,32 @@ export function SegmentCard({ segment, profile, tabOrder, onChange, onRemove }: 
     profile === "uc" && segment.id === "rectum"
       ? classifyRectalActivity(segment)
       : undefined
+  useEffect(() => {
+    if (segment.id !== "rectum") return
+    const hasValidRectalBwt =
+      !segment.notVisualised && !segment.bwtUncertain && segment.bowelWallThickness !== undefined
+    if (hasValidRectalBwt) {
+      if (!segment.rectalBwtApproach) {
+        onChange({ rectalBwtApproach: "transabdominal" })
+      }
+      return
+    }
+    if (segment.rectalBwtApproach) {
+      onChange({ rectalBwtApproach: undefined })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    segment.id,
+    segment.notVisualised,
+    segment.bwtUncertain,
+    segment.bowelWallThickness,
+    segment.rectalBwtApproach,
+  ])
+  const showRectalApproach =
+    segment.id === "rectum" &&
+    !segment.notVisualised &&
+    !segment.bwtUncertain &&
+    segment.bowelWallThickness !== undefined
   const statusDescriptor = useMemo(() => {
     if (segment.notVisualised) {
       return `Segment not ${spell("visualized")}`
@@ -81,8 +107,9 @@ export function SegmentCard({ segment, profile, tabOrder, onChange, onRemove }: 
         return `Rectal BWT ${bwt.toFixed(1)} mm · ${interpretation}`
       }
       if (milanScore !== undefined) {
-        const severityText = status === "uninvolved" ? "likely remission" : "likely active inflammation"
-        return `Milan score ${milanScore.toFixed(1)} · ${severityText}`
+        const likelihoodText =
+          status === "uninvolved" ? "inflammation unlikely" : "inflammation likely"
+        return `Milan score ${milanScore.toFixed(1)} · ${likelihoodText}`
       }
       return status === "uninvolved" ? "Segment normal" : "Awaiting Milan inputs"
     }
@@ -135,6 +162,9 @@ export function SegmentCard({ segment, profile, tabOrder, onChange, onRemove }: 
       }
       return "text-slate-500"
     }
+    if (profile === "uc" && segment.id !== "rectum" && milanScore !== undefined) {
+      return status === "uninvolved" ? "text-sky-600" : "text-rose-700"
+    }
     if (
       statusDescriptor.toLowerCase().includes("segment normal") ||
       statusDescriptor.toLowerCase().includes("remission")
@@ -155,6 +185,8 @@ export function SegmentCard({ segment, profile, tabOrder, onChange, onRemove }: 
     segment.id,
     segment.bowelWallThickness,
     segment.bwtUncertain,
+    milanScore,
+    status,
     rectalActivity,
   ])
 
@@ -164,7 +196,6 @@ export function SegmentCard({ segment, profile, tabOrder, onChange, onRemove }: 
         segment,
         profile,
         indicatorText: statusDescriptor,
-        status,
         milanScore,
         rectalActivity,
         ibusScore,
@@ -229,9 +260,22 @@ export function SegmentCard({ segment, profile, tabOrder, onChange, onRemove }: 
         prestenoticDiameterMm: undefined,
         visualizationOverride: undefined,
         visualizationImpairmentReason: undefined,
+        rectalBwtApproach: undefined,
       })
     } else {
-      onChange({ bowelWallThickness: value, bwtUncertain: undefined })
+      const updates: SegmentUpdate = {
+        bowelWallThickness: value,
+        bwtUncertain: undefined,
+      }
+      if (
+        segment.id === "rectum" &&
+        !segment.rectalBwtApproach &&
+        !segment.notVisualised &&
+        !segment.bwtUncertain
+      ) {
+        updates.rectalBwtApproach = "transabdominal"
+      }
+      onChange(updates)
     }
   }
 
@@ -390,6 +434,32 @@ export function SegmentCard({ segment, profile, tabOrder, onChange, onRemove }: 
               />
             )}
           </div>
+          {showRectalApproach && (
+            <div className="flex flex-wrap gap-1.5 pt-2">
+              {[
+                { value: "transabdominal" as const, label: "Transabdominal" },
+                { value: "transperineal" as const, label: "Transperineal" },
+              ].map((option) => {
+                const isSelected = segment.rectalBwtApproach === option.value
+                return (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onClick={() => onChange({ rectalBwtApproach: option.value })}
+                    className={cn(
+                      "h-7 rounded-full px-3 text-[11px] font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+                      isSelected
+                        ? "border-transparent bg-sky-600 text-white shadow-sm"
+                        : "border border-slate-200/80 bg-white/80 text-muted-foreground hover:border-slate-300 hover:bg-slate-100",
+                    )}
+                    aria-pressed={isSelected}
+                  >
+                    {option.label}
+                  </button>
+                )
+              })}
+            </div>
+          )}
         </section>
 
         {expanded && !segment.notVisualised && (

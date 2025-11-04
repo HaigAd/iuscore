@@ -1,5 +1,7 @@
 "use client"
 
+import { BowelStratificationInfo } from "@/components/segments/stratification-info"
+import { MesentericFatInfo } from "@/components/segments/mesenteric-fat-info"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import type { SegmentData, SegmentUpdate } from "@/lib/segments"
@@ -24,7 +26,10 @@ export function QuickScoreCrohnsControls({
     <>
       <section className="space-y-2">
         <Label className="text-xs uppercase tracking-wide text-muted-foreground/80">
-          Bowel wall stratification
+          <span className="flex items-center gap-1">
+            Bowel wall stratification
+            <BowelStratificationInfo />
+          </span>
         </Label>
         <div className="flex flex-wrap gap-2">
           {crohnsStratificationOptions.map((option) => {
@@ -57,7 +62,10 @@ export function QuickScoreCrohnsControls({
 
       <section className="space-y-2">
         <Label className="text-xs uppercase tracking-wide text-muted-foreground/80">
-          Mesenteric fat
+          <span className="flex items-center gap-1">
+            Mesenteric fat
+            <MesentericFatInfo />
+          </span>
         </Label>
         <div className="flex flex-wrap gap-2">
           {[

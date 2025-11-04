@@ -51,7 +51,6 @@ export function buildScoreSummary(
       segment,
       profile,
       indicatorText,
-      status,
       milanScore,
       rectalActivity,
       ibusScore,
@@ -127,8 +126,8 @@ export function buildScoreSummary(
 
     const context =
       status === "uninvolved"
-        ? "Consistent with inactive disease."
-        : "Suggestive of active inflammation."
+        ? "Inflammation unlikely based on Milan criteria."
+        : "Inflammation likely based on Milan criteria."
 
     const summary: ScoreSummary = {
       label: "Milan score",
@@ -138,8 +137,8 @@ export function buildScoreSummary(
     }
     const indicatorText =
       status === "uninvolved"
-        ? `Milan score ${milanScore.toFixed(1)} · likely remission`
-        : `Milan score ${milanScore.toFixed(1)} · likely active inflammation`
+        ? `Milan score ${milanScore.toFixed(1)} · inflammation unlikely`
+        : `Milan score ${milanScore.toFixed(1)} · inflammation likely`
 
     return withContext(summary, indicatorText)
   }

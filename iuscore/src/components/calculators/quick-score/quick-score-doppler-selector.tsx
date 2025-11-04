@@ -2,6 +2,7 @@
 
 import { Droplet } from "lucide-react"
 
+import { ModifiedLimbergInfo } from "@/components/segments/modified-limberg-info"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import type { DiseaseProfile, SegmentData, SegmentUpdate } from "@/lib/segments"
@@ -61,7 +62,10 @@ export function QuickScoreDopplerSelector({
   return (
     <section className="space-y-2">
       <Label className="text-xs uppercase tracking-wide text-muted-foreground/80">
-        Doppler signal (Modified Limberg Score)
+        <span className="flex items-center gap-1">
+          Doppler signal (Modified Limberg Score)
+          <ModifiedLimbergInfo />
+        </span>
       </Label>
       <div className="flex flex-wrap gap-2">
         {[0, 1, 2, 3].map((grade) => (

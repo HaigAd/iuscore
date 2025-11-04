@@ -1,5 +1,6 @@
 "use client"
 
+import { BowelStratificationInfo } from "@/components/segments/stratification-info"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import type { DiseaseProfile, SegmentData, SegmentUpdate } from "@/lib/segments"
@@ -37,7 +38,10 @@ export function SegmentStratificationControl({
   return (
     <div className="space-y-2 rounded-2xl border border-border/60 bg-background/70 p-3">
       <Label className="text-xs uppercase tracking-wide text-muted-foreground">
-        Bowel wall stratification
+        <span className="flex items-center gap-1">
+          Bowel wall stratification
+          <BowelStratificationInfo />
+        </span>
       </Label>
       <div className="flex flex-wrap gap-2">
         {stratificationOptions[profile].map((option) => {

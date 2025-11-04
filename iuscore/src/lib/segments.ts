@@ -47,6 +47,7 @@ export interface SegmentTemplate {
   isDynamic?: boolean
   visualizationOverride?: "good" | "impaired"
   visualizationImpairmentReason?: string
+  rectalBwtApproach?: "transabdominal" | "transperineal"
 }
 
 export interface SegmentData extends SegmentTemplate {
@@ -101,17 +102,10 @@ export function createSegmentInstance(template: SegmentTemplate): SegmentData {
   }
 }
 
-const severitySchema = {
-  uc: {
-    mild: 3.5,
-    moderate: 4.5,
-    severe: 6,
-  },
-  cd: {
-    mild: 3,
-    moderate: 4,
-    severe: 5.5,
-  },
+const crohnsSeveritySchema = {
+  mild: 3,
+  moderate: 4,
+  severe: 5.5,
 }
 
 const dopplerWeights = {
@@ -120,7 +114,7 @@ const dopplerWeights = {
   severe: 3,
 } as const
 
-const MILAN_INACTIVE_THRESHOLD = 6.2
+export const MILAN_INFLAMMATION_THRESHOLD = 6.2
 
 export function getSegmentStatus(
   segment: SegmentData,
@@ -133,15 +127,17 @@ export function getSegmentStatus(
     return "uninvolved"
   }
 
-  const thresholds = severitySchema[profile]
-  const bwt = segment.bwtUncertain ? undefined : segment.bowelWallThickness
-  const doppler = segment.dopplerUncertain ? undefined : segment.dopplerGrade
   if (profile === "uc") {
     const milanScore = getMilanScore(segment)
-    if (milanScore !== undefined && milanScore < MILAN_INACTIVE_THRESHOLD) {
+    if (milanScore === undefined) {
       return "uninvolved"
     }
+    return milanScore <= MILAN_INFLAMMATION_THRESHOLD ? "uninvolved" : "severe"
   }
+
+  const thresholds = crohnsSeveritySchema
+  const bwt = segment.bwtUncertain ? undefined : segment.bowelWallThickness
+  const doppler = segment.dopplerUncertain ? undefined : segment.dopplerGrade
 
   if (
     (bwt !== undefined && bwt >= thresholds.severe) ||
@@ -188,7 +184,12 @@ export function segmentSummary(segment: SegmentData, profile: DiseaseProfile) {
   const orderedFindings: string[] = []
 
   if (segment.bowelWallThickness !== undefined) {
-    orderedFindings.push(`BWT ${segment.bowelWallThickness.toFixed(1)}mm`)
+    const baseBwtText = `BWT ${segment.bowelWallThickness.toFixed(1)}mm`
+    const rectalApproachDetail =
+      segment.id === "rectum" && segment.rectalBwtApproach
+        ? ` (${segment.rectalBwtApproach === "transabdominal" ? "visualized transabdominally" : "visualized transperineally"})`
+        : ""
+    orderedFindings.push(`${baseBwtText}${rectalApproachDetail}`)
   }
 
   if (segment.dopplerUncertain) {

@@ -4,14 +4,13 @@ import type {
   IbusActivityState,
   RectalActivityState,
   SegmentData,
-  SegmentStatus,
 } from "@/lib/segments"
+import { MILAN_INFLAMMATION_THRESHOLD } from "@/lib/segments"
 
 interface BuildSegmentIndicatorContextInput {
   segment: SegmentData
   profile: DiseaseProfile
   indicatorText: string
-  status: SegmentStatus
   milanScore?: number
   rectalActivity?: RectalActivityState
   ibusScore?: number
@@ -22,7 +21,6 @@ export function buildSegmentIndicatorContext({
   segment,
   profile,
   indicatorText,
-  status,
   milanScore,
   rectalActivity,
   ibusScore,
@@ -33,7 +31,7 @@ export function buildSegmentIndicatorContext({
       return buildRectalBwtContext({ segment, indicatorText, rectalActivity })
     }
 
-    return buildMilanContext({ segment, indicatorText, status, milanScore })
+    return buildMilanContext({ indicatorText, milanScore })
   }
 
   return buildIbusContext({ segment, indicatorText, ibusScore, ibusState })
@@ -58,38 +56,26 @@ function buildRectalBwtContext({
           : "indeterminate activity"
 
   return {
-    title: `${segment.label} assessment`,
+    title: "Rectal assessment",
     summary:
-      "Placeholder guidance for rectal bowel wall thickness interpretation. Tailor this content with study references and decision aids as needed.",
+      "The Milan Score is not validated for rectal assessment. Sagami et al. demonstrated that bowel wall thickness on transperineal ultrasound (TPUS) best reflects rectal inflammation.",
     sections: [
       {
-        heading: "Current interpretation",
-        body: indicatorText,
+        heading: "Reference threshold",
         items: [
           {
-            text: "Activity classification",
-            detail: `Current placeholder: ${activityLabel}.`,
-          },
-          {
-            text: "Future enhancements",
-            detail: "Add reference values, confidence annotations, and supporting imagery here.",
-          },
+            text: "BWT ≤ 4 mm",
+            detail: "Predicts endoscopic and histologic remission \n - Sensitivity ~95%\n - Specificity ~ 42%",
+          }
         ],
       },
       {
-        heading: "Suggested cutoffs",
-        items: [
+        heading: "Reference",
+        links: [
           {
-            text: "< 4 mm",
-            detail: "Placeholder: consistent with endoscopic remission.",
-          },
-          {
-            text: "4–6 mm",
-            detail: "Placeholder: indeterminate activity range.",
-          },
-          {
-            text: "≥ 6 mm",
-            detail: "Placeholder: suggests active inflammation.",
+            external:true,
+            label: "1. Transperineal ultrasound predicts endoscopic and histological healing in ulcerative colitis",
+            href: "https://doi.org/10.1111/apt.15767.",
           },
         ],
       },
@@ -98,61 +84,56 @@ function buildRectalBwtContext({
 }
 
 function buildMilanContext({
-  segment,
   indicatorText,
-  status,
   milanScore,
 }: {
-  segment: SegmentData
   indicatorText: string
-  status: SegmentStatus
   milanScore?: number
 }): ContextContent {
-  const severity =
-    status === "uninvolved"
-      ? "remission"
-      : status === "mild"
-        ? "mild inflammation"
-        : status === "moderate"
-          ? "moderate inflammation"
-          : "severe inflammation"
+  const summary =
+    milanScore === undefined
+      ? "Add bowel wall thickness and Doppler inputs to calculate the Milan score."
+      : milanScore <= MILAN_INFLAMMATION_THRESHOLD
+        ? `Score ${milanScore.toFixed(1)} (≤ ${MILAN_INFLAMMATION_THRESHOLD.toFixed(
+            1,
+          )}) — inflammation unlikely.`
+        : `Score ${milanScore.toFixed(1)} (> ${MILAN_INFLAMMATION_THRESHOLD.toFixed(
+            1,
+          )}) — inflammation likely.`
 
   return {
-    title: `${segment.label} Milan overview`,
-    summary:
-      "Placeholder Milan score guidance. Populate with study-backed thresholds, sensitivity/specificity notes, and clinical decision prompts.",
+    title: "Milan Ultrasound Criteria interpretation¹",
+    summary,
     sections: [
       {
-        heading: "Current interpretation",
-        body: indicatorText,
+        heading: "Reference thresholds²",
         items: [
           {
-            text: "Aligned severity",
-            detail: `Placeholder: ${severity}.`,
+            text: "≤ 6.2",
+            detail:
+              "Inflammation unlikely; predicts endoscopic remission (Mayo ≤ 1)\n - Sensitivity 85%\n - Specificity 94%",
           },
           {
-            text: "Reported score",
+            text: "> 8.2",
             detail:
-              milanScore !== undefined
-                ? `Placeholder: ${milanScore.toFixed(1)} (add confidence intervals or study references).`
-                : "Placeholder: score pending inputs.",
+              "Higher values (>8.2) correlate with greater disease severity and a 100% specificity for endoscopic activity in a validation cohort.²",
           },
         ],
       },
       {
-        heading: "Reference cutoffs",
-        items: [
+        heading: "Reference",
+        links: [
           {
-            text: "≤ 6.2",
-            detail: "Placeholder: suggests inactive disease (per validation studies).",
+            external:true,
+            href: "https://doi.org/10.1093/ecco-jcc/jjy107",
+            label:
+              "1. Alloca et al. Accuracy of Humanitas Ultrasound Criteria in assessing disease activity and severity in ulcerative colitis: a prospective study. ",
           },
           {
-            text: "6.3 – 7.4",
-            detail: "Placeholder: mild activity band.",
-          },
-          {
-            text: "≥ 7.5",
-            detail: "Placeholder: consider active inflammation.",
+            external:true,
+            href: "https://doi.org/10.1177/2050640620980203",
+            label:
+              "2. Alloca et al. Milan ultrasound criteria are accurate in assessing disease activity in ulcerative colitis: external validation.",
           },
         ],
       },
@@ -181,45 +162,47 @@ function buildIbusContext({
           : "activity pending inputs"
 
   return {
-    title: `${segment.label} IBUS-SAS overview`,
+    title: `IBUS-SAS overview¹`,
     summary:
-      "Placeholder IBUS-SAS context. Include score composition, workflow tips, and literature references to support interpretations.",
+      "",
     sections: [
       {
-        heading: "Current interpretation",
-        body: indicatorText,
+        heading: "Reference thresholds",
         items: [
           {
-            text: "Activity classification",
-            detail: `Placeholder: ${activityLabel}.`,
+            text: "> 25.2",
+            detail: "Predicts any endoscopic activity\n - Sensitivity 82%\n - Specificity 100%",
           },
           {
-            text: "Reported score",
-            detail:
-              ibusScore !== undefined
-                ? `Placeholder: ${ibusScore.toFixed(1)} (breakdown by domains can be added here).`
-                : "Placeholder: awaiting calculation.",
+            text:"> 27.5",
+            detail:"Predicts endoscopic activity in a separate validation cohort³\n - Sensitivity 93%\n - Specificity 94%"
           },
+          {
+            text: "> 65.5",
+            detail: "Predicts severe endoscopic activity³\n - Sensitivity 95%\n - Specificity 88%",
+          }
         ],
       },
-      {
-        heading: "Reference cutoffs",
-        items: [
+            {
+        heading: "References",
+        links: [
           {
-            text: "< 25.2",
-            detail: "Placeholder: likely transmural remission.",
+            external: true,
+            href: "https://doi.org/10.1093/ecco-jcc/jjaa216",
+            label: "1. Novak et al. Expert Consensus on Optimal Acquisition and Development of the International Bowel Ultrasound Segmental Activity Score [IBUS-SAS]: A Reliability and Inter-rater Variability Study on Intestinal Ultrasonography in Crohn’s Disease",
           },
           {
-            text: "25.2 – 32",
-            detail: "Placeholder: indeterminate activity band.",
+            external: true,
+            href: "https://doi.org/10.1093/ecco-jcc/jjad068",
+            label: "2. Dragoni et al. Correlation of Ultrasound Scores with Endoscopic Activity in Crohn's Disease: A Prospective Exploratory Study",
           },
           {
-            text: "> 32",
-            detail: "Placeholder: suggests active transmural disease.",
-          },
+            external: true,
+            href: "https://doi.org/10.21037/qims-24-742",
+            label:"3. Zhao et al. Validation of intestinal ultrasound scores in assessing endoscopic activity of colonic and small intestinal Crohn’s disease in a southwest Chinese cohort: a retrospective cross-sectional study",
+          }
         ],
       },
     ],
   }
 }
-

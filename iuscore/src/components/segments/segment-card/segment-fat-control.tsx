@@ -1,5 +1,6 @@
 "use client"
 
+import { MesentericFatInfo } from "@/components/segments/mesenteric-fat-info"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import type { DiseaseProfile, SegmentData, SegmentUpdate } from "@/lib/segments"
@@ -25,7 +26,12 @@ export function SegmentFatControl({ profile, segment, onChange }: SegmentFatCont
 
   return (
     <div className="space-y-3 rounded-2xl border border-border/60 bg-background/70 p-3">
-      <Label className="text-xs uppercase tracking-wide text-muted-foreground">Mesenteric fat</Label>
+      <Label className="text-xs uppercase tracking-wide text-muted-foreground">
+        <span className="flex items-center gap-1">
+          Mesenteric fat
+          <MesentericFatInfo />
+        </span>
+      </Label>
       <div className="flex flex-wrap gap-2">
         {options.map((option) => {
           const currentState = segment.fatWrapping
