@@ -139,6 +139,7 @@ function buildAutoImpression({
   if (profile === "uc") {
     const rectalSegment = segments.find((segment) => segment.id === "rectum")
     const rectalSentence = buildRectalActivitySentence(rectalSegment)
+    const rectalActivity = rectalSegment ? classifyRectalActivity(rectalSegment) : undefined
     const nonRectalSegments = segments.filter((segment) => segment.id !== "rectum")
 
     const colonHighestSeverity =
@@ -150,9 +151,17 @@ function buildAutoImpression({
         : "uninvolved"
 
     if (colonHighestSeverity === "uninvolved") {
-      const primary =
-        rectalSentence || "No sonographic evidence of active bowel inflammation."
-      return composeImpression(primary, visualizationStatement)
+      const normalStatement = "No sonographic evidence of active bowel inflammation."
+      if (rectalActivity === "absent" || !rectalSentence) {
+        const sentences = [normalStatement]
+        if (rectalSentence) {
+          sentences.push(rectalSentence)
+        }
+        const primary = sentences.join(" ")
+        return composeImpression(primary.trim(), visualizationStatement)
+      }
+
+      return composeImpression(rectalSentence, visualizationStatement)
     }
 
     const focusSegments = nonRectalSegments
@@ -385,12 +394,15 @@ function buildRectalActivitySentence(segment?: SegmentData) {
   const bwtText = `BWT ${bwt.toFixed(1)} mm`
 
   if (activity === "absent") {
-    return `Rectal inflammation absent (${bwtText}).`
+    return ""
+  }
+  if (activity === "possible") {
+    return `Rectal inflammation possible (${bwtText}).`
   }
   if (activity === "present") {
-    return `Rectal inflammation present (${bwtText}).`
+    return `Rectal inflammation likely (${bwtText}).`
   }
-  return `Rectal inflammation possible (${bwtText} - a BWT < 4mm in the rectum is associated with endoscopic remission and a BWT > 6mm is associated with active disease).`;
+  return ""
 }
 
 function deriveCrohnsStatusLabel(entries: IbusClassificationEntry[]) {

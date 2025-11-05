@@ -98,12 +98,12 @@ export function SegmentCard({ segment, profile, tabOrder, onChange, onRemove }: 
         }
         const interpretation =
           rectalActivity === "absent"
-            ? "Inflammation absent."
+            ? "Inflammation unlikely."
             : rectalActivity === "possible"
               ? "Inflammation possible."
-              : rectalActivity === "present"
-                ? "Inflammation present."
-                : "Inflammation indeterminate."
+            : rectalActivity === "present"
+              ? "Inflammation likely."
+              : "Inflammation indeterminate."
         return `Rectal BWT ${bwt.toFixed(1)} mm · ${interpretation}`
       }
       if (milanScore !== undefined) {
@@ -197,7 +197,6 @@ export function SegmentCard({ segment, profile, tabOrder, onChange, onRemove }: 
         profile,
         indicatorText: statusDescriptor,
         milanScore,
-        rectalActivity,
         ibusScore,
         ibusState: ibusClassification?.state,
       }),
@@ -207,7 +206,6 @@ export function SegmentCard({ segment, profile, tabOrder, onChange, onRemove }: 
       statusDescriptor,
       status,
       milanScore,
-      rectalActivity,
       ibusScore,
       ibusClassification?.state,
     ],

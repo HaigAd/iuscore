@@ -51,7 +51,6 @@ export function QuickScoreSummary({ summary }: QuickScoreSummaryProps) {
   const toneStyle = toneStyles[summary.tone]
   const [contextOpen, setContextOpen] = useState(false)
   const context = summary.context
-  const hasContext = Boolean(context)
   const contextId = useId()
 
   return (
@@ -72,7 +71,7 @@ export function QuickScoreSummary({ summary }: QuickScoreSummaryProps) {
           {summary.description}
         </p>
 
-        {hasContext ? (
+        {context ? (
           <div className="mt-1 space-y-2">
             <button
               type="button"

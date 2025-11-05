@@ -187,7 +187,9 @@ export function segmentSummary(segment: SegmentData, profile: DiseaseProfile) {
     const baseBwtText = `BWT ${segment.bowelWallThickness.toFixed(1)}mm`
     const rectalApproachDetail =
       segment.id === "rectum" && segment.rectalBwtApproach
-        ? ` (${segment.rectalBwtApproach === "transabdominal" ? "visualized transabdominally" : "visualized transperineally"})`
+        ? ` (${spell("visualized")} ${
+            segment.rectalBwtApproach === "transabdominal" ? "transabdominally" : "transperineally"
+          })`
         : ""
     orderedFindings.push(`${baseBwtText}${rectalApproachDetail}`)
   }
@@ -320,10 +322,10 @@ export function classifyRectalActivity(segment: SegmentData): RectalActivityStat
   if (segment.bowelWallThickness < 4) {
     return "absent"
   }
-  if (segment.bowelWallThickness >= 6) {
-    return "present"
+  if (segment.bowelWallThickness <= 6) {
+    return "possible"
   }
-  return "possible"
+  return "present"
 }
 
 /**
@@ -385,19 +387,23 @@ export function isTransmuralRemission(segment: SegmentData) {
   )
 }
 
-export function classifyIbusActivity(segment: SegmentData) {
+export function classifyIbusActivity(
+  segment: SegmentData,
+): { state: IbusActivityState; score: number } | undefined {
   if (segment.notVisualised) {
     return undefined
   }
   if (isTransmuralRemission(segment)) {
-    return { state: "remission" as IbusActivityState, score: getIbusScore(segment) }
+    const score = getIbusScore(segment)
+    return score === undefined
+      ? undefined
+      : { state: "remission", score }
   }
 
   const score = getIbusScore(segment)
   if (score === undefined) return undefined
 
-  return {
-    state: score >= 25.2 ? "active" : "inactive",
-    score,
-  }
+  const state: IbusActivityState = score >= 25.2 ? "active" : "inactive"
+
+  return { state, score }
 }

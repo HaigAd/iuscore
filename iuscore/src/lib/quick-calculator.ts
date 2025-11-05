@@ -52,7 +52,6 @@ export function buildScoreSummary(
       profile,
       indicatorText,
       milanScore,
-      rectalActivity,
       ibusScore,
       ibusState: ibusClassification?.state,
     }),
@@ -90,12 +89,12 @@ export function buildScoreSummary(
 
       const interpretation =
         rectalActivity === "absent"
-          ? "Inflammation absent."
+          ? "Inflammation unlikely."
           : rectalActivity === "possible"
             ? "Inflammation possible."
-            : rectalActivity === "present"
-              ? "Inflammation present."
-              : "Inflammation indeterminate."
+          : rectalActivity === "present"
+            ? "Inflammation likely."
+            : "Inflammation indeterminate."
 
       const summary: ScoreSummary = {
         label: "Rectal BWT (mm)",
@@ -106,9 +105,9 @@ export function buildScoreSummary(
             ? "positive"
             : rectalActivity === "possible"
               ? "caution"
-              : rectalActivity === "present"
-                ? "negative"
-                : "muted",
+            : rectalActivity === "present"
+              ? "negative"
+              : "muted",
       }
 
       const indicatorText = `Rectal BWT ${bwt.toFixed(1)} mm · ${interpretation}`

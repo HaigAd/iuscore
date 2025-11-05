@@ -1,10 +1,5 @@
 import type { ContextContent } from "@/components/context/context-popover"
-import type {
-  DiseaseProfile,
-  IbusActivityState,
-  RectalActivityState,
-  SegmentData,
-} from "@/lib/segments"
+import type { DiseaseProfile, IbusActivityState, SegmentData } from "@/lib/segments"
 import { MILAN_INFLAMMATION_THRESHOLD } from "@/lib/segments"
 
 interface BuildSegmentIndicatorContextInput {
@@ -12,7 +7,6 @@ interface BuildSegmentIndicatorContextInput {
   profile: DiseaseProfile
   indicatorText: string
   milanScore?: number
-  rectalActivity?: RectalActivityState
   ibusScore?: number
   ibusState?: IbusActivityState
 }
@@ -22,13 +16,12 @@ export function buildSegmentIndicatorContext({
   profile,
   indicatorText,
   milanScore,
-  rectalActivity,
   ibusScore,
   ibusState,
 }: BuildSegmentIndicatorContextInput): ContextContent {
   if (profile === "uc") {
     if (segment.id === "rectum") {
-      return buildRectalBwtContext({ segment, indicatorText, rectalActivity })
+      return buildRectalBwtContext()
     }
 
     return buildMilanContext({ indicatorText, milanScore })
@@ -37,35 +30,22 @@ export function buildSegmentIndicatorContext({
   return buildIbusContext({ segment, indicatorText, ibusScore, ibusState })
 }
 
-function buildRectalBwtContext({
-  segment,
-  indicatorText,
-  rectalActivity,
-}: {
-  segment: SegmentData
-  indicatorText: string
-  rectalActivity?: RectalActivityState
-}): ContextContent {
-  const activityLabel =
-    rectalActivity === "absent"
-      ? "absent inflammation"
-      : rectalActivity === "present"
-        ? "present inflammation"
-        : rectalActivity === "possible"
-          ? "possible inflammation"
-          : "indeterminate activity"
+function buildRectalBwtContext(): ContextContent {
 
   return {
-    title: "Rectal assessment",
-    summary:
-      "The Milan Score is not validated for rectal assessment. Sagami et al. demonstrated that bowel wall thickness on transperineal ultrasound (TPUS) best reflects rectal inflammation.",
+    title: `Rectal Findings Iterpretation`,
+    summary: "The Milan score is not validated for rectal assessment. BWT has been shown to correlate strongly with inflammatory activity.",
     sections: [
       {
-        heading: "Reference threshold",
+        heading: "Reference threshold¹",
         items: [
           {
-            text: "BWT ≤ 4 mm",
-            detail: "Predicts endoscopic and histologic remission \n - Sensitivity ~95%\n - Specificity ~ 42%",
+            text: "BWT ≥ 4 mm",
+            detail: "Predicts endoscopic endoscopic activity with <b>high sensitivity</b> \n - Sensitivity 95% (TAUS), 100% (TPUS)\n - Specificity 17% (TAUS), 42% (TPUS)",
+          },
+          {
+            text: "BWT > 6mm",
+            detail: "Predicts histologic activity with <b>high specificity</b> (Robarts Histopathology Index > 6)\n - Sensitivity 52%\n - Specificity 89%"
           }
         ],
       },
@@ -73,9 +53,9 @@ function buildRectalBwtContext({
         heading: "Reference",
         links: [
           {
-            external:true,
-            label: "1. Transperineal ultrasound predicts endoscopic and histological healing in ulcerative colitis",
-            href: "https://doi.org/10.1111/apt.15767.",
+            external: true,
+            label: "1. Sagami et al. Transperineal ultrasound predicts endoscopic and histological healing in ulcerative colitis",
+            href: "https://doi.org/10.1111/apt.15767",
           },
         ],
       },
@@ -90,7 +70,7 @@ function buildMilanContext({
   indicatorText: string
   milanScore?: number
 }): ContextContent {
-  const summary =
+  const defaultSummary =
     milanScore === undefined
       ? "Add bowel wall thickness and Doppler inputs to calculate the Milan score."
       : milanScore <= MILAN_INFLAMMATION_THRESHOLD
@@ -100,6 +80,7 @@ function buildMilanContext({
         : `Score ${milanScore.toFixed(1)} (> ${MILAN_INFLAMMATION_THRESHOLD.toFixed(
             1,
           )}) — inflammation likely.`
+  const summary = indicatorText || defaultSummary
 
   return {
     title: "Milan Ultrasound Criteria interpretation¹",
@@ -109,9 +90,9 @@ function buildMilanContext({
         heading: "Reference thresholds²",
         items: [
           {
-            text: "≤ 6.2",
+            text: "> 6.2",
             detail:
-              "Inflammation unlikely; predicts endoscopic remission (Mayo ≤ 1)\n - Sensitivity 85%\n - Specificity 94%",
+              "Inflammation likely; predicts endoscopic activity (Mayo ≤ 1)\n - Sensitivity 85%\n - Specificity 94%",
           },
           {
             text: "> 8.2",
@@ -124,13 +105,13 @@ function buildMilanContext({
         heading: "Reference",
         links: [
           {
-            external:true,
+            external: true,
             href: "https://doi.org/10.1093/ecco-jcc/jjy107",
             label:
               "1. Alloca et al. Accuracy of Humanitas Ultrasound Criteria in assessing disease activity and severity in ulcerative colitis: a prospective study. ",
           },
           {
-            external:true,
+            external: true,
             href: "https://doi.org/10.1177/2050640620980203",
             label:
               "2. Alloca et al. Milan ultrasound criteria are accurate in assessing disease activity in ulcerative colitis: external validation.",
@@ -161,10 +142,15 @@ function buildIbusContext({
           ? "active inflammation"
           : "activity pending inputs"
 
+  const defaultSummary =
+    ibusScore === undefined
+      ? "Add relevant variables to calculate the IBUS-SAS score."
+      : `IBUS-SAS ${ibusScore.toFixed(1)} — ${activityLabel}.`
+  const summary = indicatorText || defaultSummary
+
   return {
-    title: `IBUS-SAS overview¹`,
-    summary:
-      "",
+    title: `${segment.label} IBUS-SAS context¹`,
+    summary,
     sections: [
       {
         heading: "Reference thresholds",
@@ -174,16 +160,17 @@ function buildIbusContext({
             detail: "Predicts any endoscopic activity\n - Sensitivity 82%\n - Specificity 100%",
           },
           {
-            text:"> 27.5",
-            detail:"Predicts endoscopic activity in a separate validation cohort³\n - Sensitivity 93%\n - Specificity 94%"
+            text: "> 27.5",
+            detail:
+              "Predicts endoscopic activity in a separate validation cohort³\n - Sensitivity 93%\n - Specificity 94%",
           },
           {
             text: "> 65.5",
             detail: "Predicts severe endoscopic activity³\n - Sensitivity 95%\n - Specificity 88%",
-          }
+          },
         ],
       },
-            {
+      {
         heading: "References",
         links: [
           {
@@ -199,8 +186,9 @@ function buildIbusContext({
           {
             external: true,
             href: "https://doi.org/10.21037/qims-24-742",
-            label:"3. Zhao et al. Validation of intestinal ultrasound scores in assessing endoscopic activity of colonic and small intestinal Crohn’s disease in a southwest Chinese cohort: a retrospective cross-sectional study",
-          }
+            label:
+              "3. Zhao et al. Validation of intestinal ultrasound scores in assessing endoscopic activity of colonic and small intestinal Crohn’s disease in a southwest Chinese cohort: a retrospective cross-sectional study",
+          },
         ],
       },
     ],

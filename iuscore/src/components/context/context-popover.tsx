@@ -60,7 +60,7 @@ export function ContextPopover({
   return (
     <Popover>
       <PopoverTrigger asChild>{trigger}</PopoverTrigger>
-      <PopoverContent align={align} className={cn("w-80", className)}>
+      <PopoverContent align={align} className={cn("w-[26rem]", className)}>
         <ContextContentView content={content} />
       </PopoverContent>
     </Popover>
@@ -78,9 +78,15 @@ export function ContextContentView({
     <div className={cn("space-y-3", className)}>
       {content.title ? (
         <div className="space-y-1">
-          <h3 className="text-sm font-semibold leading-tight">{content.title}</h3>
+          <h3
+            className="text-sm font-semibold leading-tight"
+            dangerouslySetInnerHTML={{ __html: content.title }}
+          />
           {content.summary ? (
-            <p className="text-xs text-muted-foreground">{content.summary}</p>
+            <p
+              className="text-xs text-muted-foreground"
+              dangerouslySetInnerHTML={{ __html: content.summary }}
+            />
           ) : null}
         </div>
       ) : null}
@@ -120,17 +126,31 @@ function ContextSectionContent({ section }: { section: ContextSection }) {
 
   return (
     <div className="space-y-2 rounded-md border border-border/40 bg-muted/30 p-3">
-      {heading ? <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{heading}</h4> : null}
-      {body ? <p className="text-xs leading-relaxed text-muted-foreground">{body}</p> : null}
+      {heading ? (
+        <h4
+          className="text-xs font-semibold uppercase tracking-wide text-muted-foreground"
+          dangerouslySetInnerHTML={{ __html: heading }}
+        />
+      ) : null}
+      {body ? (
+        <p
+          className="text-xs leading-relaxed text-muted-foreground"
+          dangerouslySetInnerHTML={{ __html: body }}
+        />
+      ) : null}
       {items?.length ? (
         <ul className="space-y-1.5">
           {items.map((item, index) => (
             <li key={index} className="text-xs text-muted-foreground">
-              <span className="font-medium text-foreground">{item.text}</span>
+              <span
+                className="font-medium text-foreground"
+                dangerouslySetInnerHTML={{ __html: item.text }}
+              />
               {item.detail ? (
-                <span className="block whitespace-pre-line text-[11px] text-muted-foreground/80">
-                  {item.detail}
-                </span>
+                <span
+                  className="block whitespace-pre-line text-[11px] text-muted-foreground/80"
+                  dangerouslySetInnerHTML={{ __html: item.detail }}
+                />
               ) : null}
               {renderLinks(item.links, `item-link-${index}`)}
             </li>
